@@ -4,3 +4,6 @@ filebrowser.db
 node_modules/
 node_modules/
 node_modules/
+**/node_modules/
+**/*.log
+filebrowser.db
