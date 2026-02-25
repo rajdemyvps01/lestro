@@ -1,4 +1,4 @@
-name: Marin VPS
+name: Yasmin
 
 on:
   workflow_dispatch:
@@ -18,10 +18,9 @@ env:
 jobs:
   ultimate-vps:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    timeout-minutes: 200
 
     steps:
-    # --- 📂 FETCH CODE WITH PUSH PERMISSION ---
     - name: 📂 Checkout Code
       uses: actions/checkout@v3
       with:
@@ -33,48 +32,52 @@ jobs:
       with:
         node-version: '22'
 
-    # --- 🧹 SYSTEM CLEANUP & TOOL INSTALL ---
-    - name: 🧹 System Cleanup & Tools Install
+    - name: 🥟 Setup Bun Runtime
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: 🧹 System Cleanup & Install Pro Tools
       run: |
         echo "🧹 Clearing Disk Space..."
         sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/android /opt/hostedtoolcache/CodeQL
         sudo docker image prune --all --force
         
         sudo apt-get update -qq
-        sudo apt-get install -y -qq ffmpeg imagemagick webp jq tmate neofetch ttyd
+        sudo apt-get install -y -qq ffmpeg imagemagick webp jq tmate neofetch ttyd btop
         
-        sudo npm install -g pm2 localtunnel
+        # 🛡️ INSTALL & DEEP CLEAN JUNK (Code 2 logic)
+        wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+        sudo dpkg -i cloudflared-linux-amd64.deb
+        
+        # Ye command bot folder ke andar se bhi installer ko uda degi
+        find . -name "cloudflared-linux-amd64.deb" -type f -delete
+        
+        sudo npm install -g pm2
         curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | sudo bash
-        
-        # 🔥 SAFETY FIX: Tmate connect hone mein error na de isliye SSH key banayi hai
         ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519
 
-    # --- 💾 THE GHOST MODE AUTO-SYNC SCRIPT ---
     - name: 💾 Setup Ghost Auto-Save (savecode)
       run: |
         git config --global user.email "marin-bot@auto.sync"
         git config --global user.name "Marin Auto-Saver"
-        
-        # 403 Error Fix: Direct Auth
         git remote set-url origin https://${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git
         
-        # 🛑 KACHRA BLOCKER: Heavy files GitHub pe na jayein
-        echo "node_modules/" >> .gitignore
+        echo "**/node_modules/" >> .gitignore
+        echo "**/*.log" >> .gitignore
+        echo "filebrowser.db" >> .gitignore
         
-        # 👻 GHOST MODE: Hide .github folder (marin.yml) completely!
         mv .github /tmp/.github_hidden
         
-        # 🪄 MAGIC COMMAND: 'savecode' (Ab save.sh file nahi banegi)
         echo '#!/bin/bash' > savecode
-        echo 'echo "⏳ Saving changes to GitHub..."' >> savecode
-        echo 'mv /tmp/.github_hidden ./.github' >> savecode # Save karte waqt 1 sec ke liye lao
+        echo 'echo "⏳ Saving ALL BOTS to GitHub..."' >> savecode
+        echo 'mv /tmp/.github_hidden ./.github' >> savecode 
         echo 'git add .' >> savecode
-        echo 'git commit -m "💾 Auto-saved changes from Ghost Panel [skip ci]" || echo "No changes to save."' >> savecode
+        echo 'git commit -m "💾 Auto-saved Multi-Bot Empire [skip ci]" || echo "No changes to save."' >> savecode
         echo 'git push origin HEAD || echo "⚠️ Push failed! Check PAT_TOKEN."' >> savecode
-        echo 'mv ./.github /tmp/.github_hidden' >> savecode # Wapas chhupa do
-        echo 'echo "✅ Save Process Completed!"' >> savecode
+        echo 'mv ./.github /tmp/.github_hidden' >> savecode 
+        echo 'echo "✅ Save Process Completed for all bots!"' >> savecode
         
-        # Isko global command bana rahe hain
         sudo mv savecode /usr/local/bin/savecode
         sudo chmod +x /usr/local/bin/savecode
 
@@ -83,51 +86,88 @@ jobs:
         echo "runner:${{ secrets.SSH_PASSWORD }}" | sudo chpasswd
         sudo usermod -aG sudo runner
 
-    - name: 📦 Install Dependencies
-      run: npm install
-
-    # --- 🚀 START BOT WITH PM2 ---
-    - name: 🚀 Start Marin MD Bot (PM2)
+    # --- 🚀 ADVANCED MULTI-BOT ENGINE ---
+    - name: 🚀 Auto-Detect & Start All Bots (PM2)
       env:
         MONGODB: ${{ secrets.MONGODB }}
         MODS: ${{ secrets.MODS }}
         SESSION_ID: ${{ secrets.SESSION_ID }}
         PACKNAME: ${{ secrets.PACKNAME }}
       run: |
-        pm2 start index.js --name "marin"
+        echo "🔍 Scanning for Bot Folders..."
+        BOT_LIST=""
+        
+        for dir in */ ; do
+          if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
+            BOT_NAME=$(basename "$dir")
+            
+            if [ -z "$BOT_LIST" ]; then
+              BOT_LIST="$BOT_NAME"
+            else
+              BOT_LIST="$BOT_LIST, $BOT_NAME"
+            fi
+            
+            echo "⚙️ Initializing Bot: $BOT_NAME"
+            cd "$dir"
+            
+            # Use Bun for installation if specified in package.json engines
+            if grep -q '"bun":' package.json; then
+              echo "🥟 Bun detected, installing with Bun..."
+              bun install
+              
+              # Start with smol engine if it is a main.js project
+              if [ -f "src/main.js" ]; then
+                pm2 start "bun run --smol src/main.js" --name "$BOT_NAME"
+              else
+                pm2 start "bun start" --name "$BOT_NAME"
+              fi
+            else
+              echo "🟢 Node detected, installing with NPM..."
+              npm install
+              if [ -f "index.js" ]; then
+                pm2 start index.js --name "$BOT_NAME"
+              else
+                pm2 start npm --name "$BOT_NAME" -- start
+              fi
+            fi
+            cd ..
+          fi
+        done
         pm2 save
+        echo "ACTIVE_BOTS=${BOT_LIST:-'No bots found!'}" >> $GITHUB_ENV
 
-    # --- 🌐 SUPER CLEAN WEB PANEL SETUP ---
-    - name: 🌐 Start Web Panel & Web Terminal
+    # --- 🌐 OPEN WEB PANELS SETUP (Code 2 Stability) ---
+    - name: 🌐 Start Open Web Panels & Btop
       run: |
-        set +e # 🔥 SHIELD: Agar 1 sec ka delay ho toh server crash na ho
+        set +e 
         
-        # Saare logs aur DB files ko /tmp/ mein bhej diya (File Manager clean rahega)
-        filebrowser -r $(pwd) -p 8080 -a 0.0.0.0 --noauth -d /tmp/filebrowser.db > /tmp/filebrowser.log 2>&1 &
-        sleep 2
-        lt --port 8080 > /tmp/tunnel_file.log 2>&1 &
-        sleep 8
+        # 🛡️ ULTRA STABLE STARTUP: No complex hide flags to prevent 502
+        # DB is in /tmp so it won't show in your folders
+        filebrowser -a 0.0.0.0 -p 8080 -r . --noauth -d /tmp/filebrowser.db > /tmp/filebrowser.log 2>&1 &
         
-        # Web Terminal
-        ttyd -p 7681 bash > /tmp/ttyd.log 2>&1 &
-        sleep 2
-        lt --port 7681 > /tmp/tunnel_term.log 2>&1 &
-        sleep 10
+        ttyd -R -p 61208 btop > /tmp/btop.log 2>&1 &
         
-        FILE_URL=$(grep -o 'https://.*' /tmp/tunnel_file.log | head -n 1)
-        TERM_URL=$(grep -o 'https://.*' /tmp/tunnel_term.log | head -n 1)
-        SERVER_IP=$(curl -s ifconfig.me)
+        # Give services enough time to breathe
+        sleep 20
         
-        echo "FILE_MANAGER_URL=${FILE_URL:-'⚠️ Link Failed'}" >> $GITHUB_ENV
-        echo "WEB_TERMINAL_URL=${TERM_URL:-'⚠️ Link Failed'}" >> $GITHUB_ENV
-        echo "SERVER_IP=${SERVER_IP:-'Unknown'}" >> $GITHUB_ENV
+        cloudflared tunnel --url http://127.0.0.1:8080 > /tmp/cf_file.log 2>&1 &
+        cloudflared tunnel --url http://127.0.0.1:61208 > /tmp/cf_btop.log 2>&1 &
+        
+        # Extra time for tunnel mapping
+        sleep 30
+        
+        FILE_URL=$(grep -o 'https://[-a-zA-Z0-9]*\.trycloudflare\.com' /tmp/cf_file.log | head -n 1)
+        BTOP_URL=$(grep -o 'https://[-a-zA-Z0-9]*\.trycloudflare\.com' /tmp/cf_btop.log | head -n 1)
+        
+        echo "FILE_MANAGER_URL=${FILE_URL:-'⚠️ Wait & Refresh'}" >> $GITHUB_ENV
+        echo "BTOP_URL=${BTOP_URL:-'⚠️ Wait & Refresh'}" >> $GITHUB_ENV
 
-    # --- 🔄 TMATE DASHBOARD & TIMER ---
+    # --- 🔄 TMATE SSH & OPEN ALERT ---
     - name: 🔄 Start Tmate Loop & Discord Alert
       env:
         DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       run: |
-        set +e # 🔥 SHIELD ON
+        set +e 
         
         for i in {1..15}; do
            tmate -S /tmp/tmate.sock kill-session 2>/dev/null || true
@@ -136,39 +176,31 @@ jobs:
            sleep 5
            
            SSH_MSG=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}' 2>/dev/null)
-           WEB_MSG=$(tmate -S /tmp/tmate.sock display -p '#{tmate_web}' 2>/dev/null) # 🔥 MOBILE KEYBOARD FIX
            
            if [[ "$SSH_MSG" == *"tmate.io"* ]]; then
               
               PAYLOAD=$(jq -n \
                 --arg ssh "$SSH_MSG" \
-                --arg tmateWeb "$WEB_MSG" \
                 --arg fileUrl "$FILE_MANAGER_URL" \
-                --arg termUrl "$WEB_TERMINAL_URL" \
-                --arg ip "$SERVER_IP" \
-                '{content: "🚨 **Marin VPS Dashboard** 🚨\n\n✅ **Status:** Online 🟢\n\n📁 **File Manager:** \($fileUrl)\n🔑 **Login IP:** `\($ip)`\n\n🖥️ **Tmate Web :** \($tmateWeb)\n🖥️ **Local Web Terminal (PC):** \($termUrl)\n💻 **SSH:** `\($ssh)`\n\n_💡 Note: Run `savecode` to save code, then `pm2 restart marin` to apply changes!_"}')
+                --arg btopUrl "$BTOP_URL" \
+                --arg bots "$ACTIVE_BOTS" \
+                '{content: "✨ 🎀 **VPS 𝐃𝐚𝐬𝐡𝐛𝐨𝐚𝐫𝐝** 🎀 ✨\n\n✅ **𝐒𝐭𝐚𝐭𝐮𝐬:** `Online` 🟢\n🤖 **𝐀𝐜𝐭𝐢𝐯𝐞 𝐁𝐨𝐭𝐬:** `\($bots)`\n\n📂 **𝐅𝐢𝐥𝐞 𝐌𝐚𝐧𝐚𝐠𝐞𝐫:** \($fileUrl)\n📊 **𝐕𝐏𝐒 𝐇𝐞𝐚𝐥𝐭𝐡:** \($btopUrl)\n💻 **𝐒𝐒𝐇 𝐓𝐞𝐫𝐦𝐢𝐧𝐚𝐥:** `\($ssh)`\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n🛠️ **𝐕𝐏𝐒 𝐌𝐀𝐍𝐀𝐆𝐄𝐌𝐄𝐍𝐓 𝐆𝐔𝐈𝐃𝐄** 🛠️\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n💾 **𝐒𝐚𝐯𝐞 𝐂𝐡𝐚𝐧𝐠𝐞𝐬:** `savecode` \n_(⚠ Required before session ends to save data to GitHub!)_\n\n📦 **𝐔𝐧𝐳𝐢𝐩 𝐁𝐨𝐭:** `unzip \"filename.zip\"` \n_(Use this to extract your uploaded bot files)_\n\n🗑️ **𝐂lean 𝐉𝐮𝐧𝐤:** `rm \"filename.zip\"` \n_(Always delete zip files after unzip to save space)_\n\n📝 **𝐕𝐢𝐞𝐰 𝐋𝐨𝐠𝐬:** `pm2 logs Name` \n_(Check QR code or bot errors live)_\n\n🔄 **𝐑𝐞𝐬𝐭𝐚𝐫𝐭:** `pm2 restart Name` \n_(Apply new code changes immediately)_\n\n🛑 **𝐒𝐭𝐨𝐩 𝐁𝐨𝐭:** `pm2 stop Name` \n_(To turn off a specific bot)_\n\n📈 **𝐒𝐭𝐚𝐭𝐮𝐬:** `pm2 status` \n_(To see all running bots list)_\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n✨ **💡 𝐓𝐢𝐩:** _If  You Have Any Issue Connect With Owner https://wa.me/918434573266 !_ "}')
               
               curl -H "Content-Type: application/json" -d "$PAYLOAD" $DISCORD_WEBHOOK
               
-              # 🔥 SMART RESTART FLAG: Sirf 5h 45m baad hi server loop mein jayega
               echo "RESTART_SAFE=true" >> $GITHUB_ENV
               
-              # Smart Timer (5 Hours 45 Mins)
-              for m in {1..69}; do sleep 300; done
+              for m in {1..36}; do sleep 300; done
               
-              # 🔥 AUTO-SAVE BEFORE RESTART
-              echo "⏳ 5 Hours 45 Mins complete! Auto-saving to GitHub before restarting..."
               savecode || true
               exit 0
            fi
            sleep 5
         done
         
-        # Agar Tmate connect nahi hua, toh bot ko infinite loop mein jaane se roko
-        curl -H "Content-Type: application/json" -d '{"content": "❌ **ERROR:** Tmate Server failed. Auto-restart paused to prevent GitHub ban."}' $DISCORD_WEBHOOK
+        curl -H "Content-Type: application/json" -d '{"content": "❌ **ERROR:** Tmate Server failed. Auto-restart paused."}' $DISCORD_WEBHOOK
         exit 1
 
-    # --- 🧟 AUTO RESTART LOOP ---
     - name: 🧟 Respawn Zombie
       if: env.RESTART_SAFE == 'true'
       uses: actions/github-script@v6
