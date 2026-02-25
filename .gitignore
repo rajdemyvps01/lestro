@@ -13,3 +13,6 @@ filebrowser.db
 **/node_modules/
 **/*.log
 filebrowser.db
+**/node_modules/
+**/*.log
+filebrowser.db
