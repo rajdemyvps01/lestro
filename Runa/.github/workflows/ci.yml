@@ -1,0 +1,119 @@
+name: Code Quality & Security
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - "src/**/*.js"
+            - "*.js"
+            - "package.json"
+            - "install.sh"
+            - "src/lib/shell/**/*.sh"
+    pull_request:
+        branches: [main]
+        paths:
+            - "src/**/*.js"
+            - "*.js"
+            - "package.json"
+            - "install.sh"
+            - "src/lib/shell/**/*.sh"
+
+permissions:
+    contents: read
+    security-events: write
+    actions: read
+    pull-requests: write
+
+jobs:
+    eslint:
+        name: ESLint Analysis
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - name: Install dependencies fresh
+              run: |
+                  bun add -D @eslint/js globals eslint
+
+            - name: Run ESLint
+              run: bunx eslint . --config ./.github/eslint.config.js
+
+    dependency-audit:
+        name: Dependency Security Audit
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - name: Install dependencies
+              run: bun install
+
+            - name: Run security audit
+              run: bun audit
+
+    trivy-scan:
+        name: Trivy Security Scan
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+
+            - name: Run Trivy vulnerability scanner (Filesystem)
+              uses: aquasecurity/trivy-action@master
+              with:
+                  scan-type: "fs"
+                  scan-ref: "."
+                  format: "sarif"
+                  output: "trivy-fs-results.sarif"
+                  severity: "CRITICAL,HIGH,MEDIUM"
+                  exit-code: "0"
+
+            - name: Run Trivy vulnerability scanner (Config files)
+              uses: aquasecurity/trivy-action@master
+              with:
+                  scan-type: "config"
+                  scan-ref: "."
+                  format: "json"
+                  output: "trivy-config-results.json"
+                  exit-code: "0"
+
+    codeql:
+        name: CodeQL Analysis
+        runs-on: ubuntu-latest
+        timeout-minutes: 360
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v6
+
+            - name: Initialize CodeQL
+              uses: github/codeql-action/init@v4
+              with:
+                  languages: javascript
+                  queries: security-extended,security-and-quality
+                  config: |
+                      paths:
+                        - src
+                      paths-ignore:
+                        - node_modules
+                        - "**/*.md"
+                        - "**/*.json"
+                        - "**/*.yml"
+                        - "**/*.yaml"
+
+            - name: Perform CodeQL Analysis
+              uses: github/codeql-action/analyze@v4
+              with:
+                  category: "/language:javascript"
+                  upload: true
+                  output: codeql-results

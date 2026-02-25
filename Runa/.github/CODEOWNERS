@@ -1,0 +1,15 @@
+# Code Owners for Runa (ルナ) – 月の光 WhatsApp Bot
+
+# Default owner for everything
+* @naruyaizumi
+
+# Specific directories
+/.github/ @naruyaizumi
+/src/ @naruyaizumi
+
+# Specific files
+/package.json @naruyaizumi
+*.md @naruyaizumi
+*.sh @naruyaizumi
+LICENSE @naruyaizumi
+.env.example @naruyaizumi
