@@ -1,4 +1,5 @@
 const fs = require("fs");
+const path = require("path");
 const YT = require("../../lib/ytdl-core.js");
 
 module.exports = {
@@ -42,29 +43,45 @@ module.exports = {
       // ⏳ Inform user
       await Miku.sendMessage(
         m.from,
-        { text: "🎬 *Downloading video...*\nPlease wait a moment ✨" },
+        { text: "📥 *Downloading video...*\nPlease wait a moment ✨" },
         { quoted: m }
       );
 
       // 📥 Download video
-      const { path: filePath, meta } = await YT.downloadMp4(url, quality);
+      const { path: filePath, meta, size } = await YT.downloadMp4(url, quality);
 
-      // 📤 Send video
-      await Miku.sendMessage(
-        m.from,
-        {
-          video: fs.readFileSync(filePath),
-          mimetype: "video/mp4",
-          caption:
-            `🎞️ *Title:* ${meta.title}\n` +
-            `📺 *Quality:* ${meta.quality}p\n\n` +
-            `💖 Enjoy your video!`,
-        },
-        { quoted: m }
-      );
+      // 📏 Calculate File Size in MB
+      const fileSizeInMB = size / (1024 * 1024);
+      const captionText = `🍁 *Title:* ${meta.title}\n🏮 *Quality:* ${meta.quality}p\n📦 *Size:* ${fileSizeInMB.toFixed(2)} MB\n\n💖 Enjoy your video!`;
+
+      // 📤 Sending Logic (Smart Switch)
+      if (fileSizeInMB > 64) {
+        // --- 📄 SEND AS DOCUMENT (If > 64MB) ---
+        await Miku.sendMessage(
+          m.from,
+          {
+            document: fs.readFileSync(filePath),
+            mimetype: "video/mp4",
+            fileName: `${meta.title}.mp4`,
+            caption: captionText + `\n\n_Note: Sent as Document because size is > 64MB_`,
+          },
+          { quoted: m }
+        );
+      } else {
+        // --- 🎥 SEND AS NORMAL VIDEO (If < 64MB) ---
+        await Miku.sendMessage(
+          m.from,
+          {
+            video: fs.readFileSync(filePath),
+            mimetype: "video/mp4",
+            caption: captionText,
+          },
+          { quoted: m }
+        );
+      }
 
       // 🧹 Cleanup
-      fs.unlinkSync(filePath);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
     } catch (e) {
       console.error(e);

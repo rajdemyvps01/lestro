@@ -2,7 +2,7 @@ const YT = require("../../lib/ytdl-core.js");
 
 module.exports = {
   name: "ytvideo",
-  alias: ["ytvideo", "ytv", "ytvd", "video"],
+  alias: ["ytvideo", "ytv", "ytvd", "video", "mp4"],
   desc: "Select and download YouTube video quality",
   category: "Media",
   usage: "ytvd <youtube link>",
@@ -50,9 +50,6 @@ module.exports = {
 `🎬 *Video Quality Selector*
 
 Please choose the quality you want to download ✨
-
-• Higher quality = clearer video  
-• Lower quality = faster download  
 
 Tap a button below to continue 👇`,
           buttons,
