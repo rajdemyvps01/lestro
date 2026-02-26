@@ -21,14 +21,19 @@ if (process.platform === 'win32') {
 }
 
 // ----------------- cookies.txt support ----------------- //
-const COOKIES_PATH = path.join(process.cwd(), "cookies.txt"); // ✅ Root path use karein
+// Ye logic check karega ki file 1 folder piche hai ya isi folder mein
+const rootCookies = path.join(process.cwd(), "cookies.txt");
+const parentCookies = path.join(process.cwd(), "..", "cookies.txt");
+
+const COOKIES_PATH = fs.existsSync(rootCookies) ? rootCookies : parentCookies;
 const HAS_COOKIES = fs.existsSync(COOKIES_PATH);
 
 if (HAS_COOKIES) {
-  console.log("🍪 Success: Cookies file detected at root!");
+    console.log("✅ Cookies found at:", COOKIES_PATH);
 } else {
-  console.log("⚠ Warning: cookies.txt not found at", COOKIES_PATH);
+    console.log("❌ Cookies still not found! Path tried:", rootCookies);
 }
+
 
 // ========================================================
 //                       MAIN CLASS
