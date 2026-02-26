@@ -21,14 +21,12 @@ if (process.platform === 'win32') {
     if (fs.existsSync(binPath)) YT_DLP_PATH = binPath;
 }
 // ----------------- cookies.txt support ----------------- //
+const rootDir = process.cwd(); 
+const COOKIES_PATH = fs.existsSync(path.join(rootDir, "lib", "cookies.txt")) 
+    ? path.join(rootDir, "lib", "cookies.txt") 
+    : path.join(rootDir, "cookies.txt");
 
-const COOKIES_PATH = path.join(process.cwd(), "lib", "cookies.txt"); // ✅ Correct Path
 const HAS_COOKIES = fs.existsSync(COOKIES_PATH);
-if (HAS_COOKIES) {
-  console.log("🍪 Using YouTube cookies from:", COOKIES_PATH);
-} else {
-  console.log("⚠ No cookies.txt found in lib/. Age/region restricted videos may fail.");
-}
 // ========================================================
 //                       MAIN CLASS
 // ========================================================
