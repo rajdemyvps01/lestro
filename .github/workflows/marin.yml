@@ -42,17 +42,17 @@ jobs:
         echo "🧹 Clearing Disk Space..."
         sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/android /opt/hostedtoolcache/CodeQL
         sudo docker image prune --all --force
-
-        # Added python3 and python3-pip for yt-dlp
+    
+        sudo apt-get update -qq
         sudo apt-get install -y -qq ffmpeg imagemagick webp jq tmate neofetch ttyd btop python3 python3-pip
         
-        # --- 📥 YT-DLP INSTALLATION ---
-        echo "📥 Installing yt-dlp..."
+        # --- 📥 YT-DLP + JS RUNTIME FIX ---
         sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
         sudo chmod a+rx /usr/local/bin/yt-dlp
         
-        sudo apt-get update -qq
-        sudo apt-get install -y -qq ffmpeg imagemagick webp jq tmate neofetch ttyd btop
+        # Install Deno (yt-dlp preferred JS runtime)
+        curl -fsSL https://deno.land/install.sh | sh
+        sudo ln -s /home/runner/.deno/bin/deno /usr/local/bin/deno
         
         # 🛡️ INSTALL & DEEP CLEAN JUNK (Code 2 logic)
         wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
