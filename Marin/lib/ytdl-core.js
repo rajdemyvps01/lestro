@@ -1,6 +1,4 @@
 // lib/ytdl-core.js
-// Final stable version: uses yt-dlp binary + optional cookies.txt
-// No youtubei.js, no python, panel-safe (Pterodactyl / Koyeb / etc)
 const { spawn } = require("child_process");
 const yts = require("youtube-yts");
 const NodeID3 = require("node-id3");
@@ -14,20 +12,14 @@ const SHOW_PROGRESS = false; // (reserve, currently off)
 const DEBUG_YTDLP = false;
 const MAX_SIZE = 20000 * 1024 * 1024; // ~20 GB (upper safety)
 const TMP_DIR = process.cwd();
-// ----------------- yt-dlp binary discovery ----------------- //
-let YT_DLP_PATH = "yt-dlp"; // global fallback
-try { fs.chmodSync(path.join(__dirname, "binaries/yt-dlp"), 0o755); } catch {}
-try { fs.chmodSync(path.join(__dirname, "binaries/yt-dlp.exe"), 0o755); } catch {}
-try {
-  const binDir = path.join(__dirname, "binaries");
-  const bin1 = path.join(binDir, "yt-dlp");
-  const bin2 = path.join(binDir, "yt-dlp.exe");
-  if (fs.existsSync(bin1)) {
-    YT_DLP_PATH = bin1;
-  } else if (fs.existsSync(bin2)) {
-    YT_DLP_PATH = bin2;
-  }
-} catch (_) {}
+// ----------------- yt-dlp ----------------- //
+
+let YT_DLP_PATH = "yt-dlp"; // Default Linux path (jo humne yml mein set kiya)
+
+if (process.platform === 'win32') {
+    const binPath = path.join(__dirname, "binaries/yt-dlp.exe");
+    if (fs.existsSync(binPath)) YT_DLP_PATH = binPath;
+}
 // ----------------- cookies.txt support ----------------- //
 const COOKIES_PATH = path.join(__dirname, "cookies.txt");
 const HAS_COOKIES = fs.existsSync(COOKIES_PATH);
