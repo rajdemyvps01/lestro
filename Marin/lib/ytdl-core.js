@@ -21,7 +21,8 @@ if (process.platform === 'win32') {
     if (fs.existsSync(binPath)) YT_DLP_PATH = binPath;
 }
 // ----------------- cookies.txt support ----------------- //
-const COOKIES_PATH = path.join(__dirname, "cookies.txt");
+
+const COOKIES_PATH = path.join(process.cwd(), "lib", "cookies.txt"); // ✅ Correct Path
 const HAS_COOKIES = fs.existsSync(COOKIES_PATH);
 if (HAS_COOKIES) {
   console.log("🍪 Using YouTube cookies from:", COOKIES_PATH);
