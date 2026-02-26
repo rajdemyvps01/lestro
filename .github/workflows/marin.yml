@@ -53,6 +53,11 @@ jobs:
         # Install Deno (yt-dlp preferred JS runtime)
         curl -fsSL https://deno.land/install.sh | sh
         sudo ln -s /home/runner/.deno/bin/deno /usr/local/bin/deno
+
+    - name: 🍪 Create Cookies File
+      run: |
+        echo "${{ secrets.YT_COOKIES }}" > cookies.txt
+        # Isse file main root folder mein ban jayegi
         
         # 🛡️ INSTALL & DEEP CLEAN JUNK (Code 2 logic)
         wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
