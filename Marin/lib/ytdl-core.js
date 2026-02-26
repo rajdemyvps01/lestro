@@ -21,12 +21,7 @@ if (process.platform === 'win32') {
     if (fs.existsSync(binPath)) YT_DLP_PATH = binPath;
 }
 // ----------------- cookies.txt support ----------------- //
-const rootDir = process.cwd(); 
-const COOKIES_PATH = fs.existsSync(path.join(rootDir, "lib", "cookies.txt")) 
-    ? path.join(rootDir, "lib", "cookies.txt") 
-    : path.join(rootDir, "cookies.txt");
-
-const HAS_COOKIES = fs.existsSync(COOKIES_PATH);
+const COOKIES_PATH = path.join(process.cwd(), "cookies.txt");
 // ========================================================
 //                       MAIN CLASS
 // ========================================================
