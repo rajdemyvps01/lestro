@@ -13,15 +13,23 @@ const DEBUG_YTDLP = false;
 const MAX_SIZE = 20000 * 1024 * 1024; // ~20 GB (upper safety)
 const TMP_DIR = process.cwd();
 // ----------------- yt-dlp ----------------- //
-
-let YT_DLP_PATH = "yt-dlp"; // Default Linux path (jo humne yml mein set kiya)
+let YT_DLP_PATH = "/usr/local/bin/yt-dlp"; 
 
 if (process.platform === 'win32') {
     const binPath = path.join(__dirname, "binaries/yt-dlp.exe");
     if (fs.existsSync(binPath)) YT_DLP_PATH = binPath;
 }
+
 // ----------------- cookies.txt support ----------------- //
 const COOKIES_PATH = path.join(process.cwd(), "cookies.txt");
+const HAS_COOKIES = fs.existsSync(COOKIES_PATH); // Ye check hona zaroori hai
+
+if (HAS_COOKIES) {
+    console.log("🍪 Cookies detected and loaded!");
+} else {
+    console.log("⚠️ No cookies found at root!");
+}
+
 // ========================================================
 //                       MAIN CLASS
 // ========================================================
@@ -172,17 +180,13 @@ class YT {
     const outPath = path.join(TMP_DIR, `${rnd}.mp3`);
     const args = this._buildBaseArgs();
     args.push(
-      "-f",
-      "bestaudio/best",
+      "-f", "ba/b", 
       "--extract-audio",
-      "--audio-format",
-      "mp3",
-      "--audio-quality",
-      "0",
-      "-o",
-      outPath,
+      "--audio-format", "mp3",
+      "--audio-quality", "0",
+      "-o", outPath,
       normalizedUrl
-    );
+   );
     await this._runYtDlp(args);
     if (!fs.existsSync(outPath)) {
       throw new Error("yt-dlp finished but mp3 file not found");
