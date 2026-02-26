@@ -21,13 +21,13 @@ if (process.platform === 'win32') {
 }
 
 // ----------------- cookies.txt support ----------------- //
-const COOKIES_PATH = path.join(process.cwd(), "cookies.txt");
-const HAS_COOKIES = fs.existsSync(COOKIES_PATH); // Ye check hona zaroori hai
+const COOKIES_PATH = path.join(process.cwd(), "cookies.txt"); // ✅ Root path use karein
+const HAS_COOKIES = fs.existsSync(COOKIES_PATH);
 
 if (HAS_COOKIES) {
-    console.log("🍪 Cookies detected and loaded!");
+  console.log("🍪 Success: Cookies file detected at root!");
 } else {
-    console.log("⚠️ No cookies found at root!");
+  console.log("⚠ Warning: cookies.txt not found at", COOKIES_PATH);
 }
 
 // ========================================================
