@@ -10,7 +10,7 @@
 import { smsg } from "#core/smsg.js";
 import { join, dirname } from "node:path";
 
-const CMD_PREFIX_RE = /^[!]/;
+const CMD_PREFIX_RE = /^[./-]/;
 
 const safe = async (fn, fallback = undefined) => {
     try {
