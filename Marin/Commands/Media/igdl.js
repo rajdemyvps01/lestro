@@ -3,81 +3,85 @@ const YT = require("../../lib/ytdl-core.js");
 
 module.exports = {
   name: "igdl",
-  alias: ["instagram", "ig", "reel", "igvideo"],
-  desc: "Download Instagram Reels or Videos",
+  alias: ["instagram", "instadl", "instagramdl", "ig", "insta", "reel"],
+  desc: "Download Instagram Reels/Videos Downloader 🧣🥰",
   category: "Media",
-  usage: `igdl <instagram_url>`,
-  react: "📸",
+  usage: `igdl <video link>`,
+  react: "🍁",
+  start: async (Miku, m, { text, prefix, args }) => {
 
-  start: async (Miku, m, { args, prefix, pushName }) => {
-    const url = args[0];
-
-    // 🔎 Validation
-    if (!url || !url.includes("instagram.com")) {
+    // 💡 Cute tip if no link provided
+    if (!args[0])
       return Miku.sendMessage(
         m.from,
-        {
-          text: `Konichiwa *${pushName}*! Please provide a valid Instagram link 💖\n\nExample: *${prefix}igdl https://www.instagram.com/reels/xxxx/*`
-        },
+        { text: `Oops! You forgot to provide a link!\nUsage: ${prefix}igdl <Instagram Video link>` },
         { quoted: m }
       );
-    }
+
+    // ❌ Invalid link message with cute words
+    if (!args[0].match(/(instagram\.com|instg\.am)/gi))
+      return Miku.sendMessage(
+        m.from,
+        { text: `⚠️ Hmm... That doesn't look like a valid Instagram link, cutie! 😅` },
+        { quoted: m }
+      );
+
+    // ⏳ Loading Message
+    await Miku.sendMessage(
+      m.from,
+      { text: `⏳ Hold on Senpai, I'm fetching your Instagram media using my core engine... 💖` },
+      { quoted: m }
+    );
 
     try {
-      // ⏳ Progress Message
-      await Miku.sendMessage(
-        m.from,
-        { text: "🚀 *Fetching Instagram Media...* \n_Please wait, I'm grabbing the best quality for you!_ ✨" },
-        { quoted: m }
-      );
+        // 🔥 Using your yt-dlp engine from lib/ytdl-core.js
+        // Quality 'undefined' rakha hai taaki Instagram ke liye 'best' uthaye (No format error)
+        const { path: filePath, meta, size } = await YT.downloadMp4(args[0], undefined);
 
-      // 📥 Using our existing YT class logic for MP4
-      // yt-dlp automatic detect kar lega ki ye Instagram hai
-      const { path: filePath, meta, size } = await YT.downloadMp4(url, 720);
+        const fileSizeInMB = size / (1024 * 1024);
+        const botName = "Marin-MD";
+        const captionText = `🎬 Yay! Your video has been downloaded by *${botName}* 💖\n\n📝 *Title:* ${meta.title || "Instagram Post"}\n📦 *Size:* ${fileSizeInMB.toFixed(2)} MB\n\nTip: You can save it or share with friends! ✨`;
 
-      const fileSizeInMB = size / (1024 * 1024);
-      const captionText = `✨ *Instagram Downloader* ✨\n\n📱 *Title:* ${meta.title || "Instagram Reel"}\n📦 *Size:* ${fileSizeInMB.toFixed(2)} MB\n\n💖 Enjoy your video!`;
+        // 📤 Sending Logic (Smart Switch for 64MB)
+        if (fileSizeInMB > 64) {
+            // --- DOCUMENT MODE ---
+            await Miku.sendMessage(
+                m.from,
+                {
+                    document: fs.readFileSync(filePath),
+                    mimetype: "video/mp4",
+                    fileName: `${meta.title || 'Instagram_Video'}.mp4`,
+                    caption: captionText + `\n\n_Note: Sent as Document due to large size ( > 64MB)_`
+                },
+                { quoted: m }
+            );
+        } else {
+            // --- NORMAL VIDEO MODE ---
+            await Miku.sendMessage(
+                m.from,
+                {
+                    video: fs.readFileSync(filePath),
+                    mimetype: "video/mp4",
+                    caption: captionText
+                },
+                { quoted: m }
+            );
+        }
 
-      // 📤 Sending Logic (Smart Switch)
-      if (fileSizeInMB > 64) {
-        await Miku.sendMessage(
-          m.from,
-          {
-            document: fs.readFileSync(filePath),
-            mimetype: "video/mp4",
-            fileName: `Instagram_Video_${Date.now()}.mp4`,
-            caption: captionText + `\n\n_Note: Sent as Document due to large size._`,
-          },
-          { quoted: m }
-        );
-      } else {
-        await Miku.sendMessage(
-          m.from,
-          {
-            video: fs.readFileSync(filePath),
-            mimetype: "video/mp4",
-            caption: captionText,
-          },
-          { quoted: m }
-        );
-      }
+        // 🧹 Cleanup
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
-      // 🧹 Cleanup
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch (error) {
+        console.error("IG Error:", error);
+        
+        let errorMsg = `❌ *Download failed!* \n\nReason: ${error.message}`;
+        if (error.message.includes("Sign in")) {
+            errorMsg = "❌ Instagram is blocking me! Please update your cookies in GitHub Secrets 🍪";
+        } else if (error.message.includes("format is not available")) {
+            errorMsg = "❌ Could not find a suitable format for this Reel. Try again later! 😢";
+        }
 
-    } catch (e) {
-      console.error("[IGDL ERROR]", e);
-      
-      // Check if it's a private video/login error
-      let errorMsg = e.message.includes("login") 
-        ? "❌ This video is private or Instagram is blocking the request. Cookies might be needed!" 
-        : `❌ *Download failed!* \n\nReason: ${e.message}`;
-
-      await Miku.sendMessage(
-        m.from,
-        { text: errorMsg },
-        { quoted: m }
-      );
+        Miku.sendMessage(m.from, { text: errorMsg }, { quoted: m });
     }
   }
 };
