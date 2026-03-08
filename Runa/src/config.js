@@ -436,7 +436,7 @@ global.loading = async (m, sock, back = false) => {
             // Add loading reaction (processing started)
             await sock.sendMessage(m.chat, {
                 react: {
-                    text: '🍥',
+                    text: '🍁',
                     key: m.key
                 }
             });
